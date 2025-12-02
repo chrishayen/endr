@@ -8,6 +8,7 @@ A lightweight package manager for the [Odin programming language](https://odin-l
 - Lock file tracking for reproducible builds
 - Seamless integration with `odin build` and `odin run`
 - Editor/LSP support via automatic `ols.json` generation
+- Native library support with pre-build hooks and linker flag injection
 - Simple TOML-based configuration
 
 ## Installation
@@ -150,7 +151,39 @@ toml_parser = "https://github.com/Up05/toml_parser"
 # Extended form - with branch or tag
 mylib = { url = "https://github.com/user/lib", branch = "main" }
 otherlib = { url = "https://github.com/user/other", tag = "v2.0.0" }
+
+[build]
+# Optional: run a script before building (e.g., compile C code)
+pre_build = "./build_libs.sh"
+
+[native_libs]
+# Optional: link native libraries
+path = "build/lib"           # directory containing .so/.dylib files
+libs = ["clarity", "face"]   # libraries to link (-lclarity -lface)
 ```
+
+### Native Library Integration
+
+If your project includes C code that needs to be compiled and linked, you can use `pre_build` and `native_libs`:
+
+1. Create a build script (e.g., `build_libs.sh`) that compiles your C code:
+```bash
+#!/bin/bash
+mkdir -p build/lib
+gcc -shared -fPIC -o build/lib/libmylib.so src/mylib.c $(pkg-config --cflags --libs somedep)
+```
+
+2. Configure `endr.toml`:
+```toml
+[build]
+pre_build = "./build_libs.sh"
+
+[native_libs]
+path = "build/lib"
+libs = ["mylib"]
+```
+
+3. Build with `endr build .` - the pre_build script runs first, then odin compiles with the linker flags.
 
 ### endr.lock
 

@@ -5,10 +5,21 @@ import "core:strings"
 import "core:fmt"
 import toml "deps:toml"
 
+Build :: struct {
+    pre_build: Maybe(string),
+}
+
+NativeLibs :: struct {
+    path: string,
+    libs: [dynamic]string,
+}
+
 Manifest :: struct {
     name:         string,
     version:      string,
     dependencies: map[string]Dependency,
+    build:        Build,
+    native_libs:  Maybe(NativeLibs),
 }
 
 Dependency :: struct {
@@ -82,6 +93,36 @@ load_manifest :: proc(allocator := context.allocator) -> (manifest: Manifest, ok
             }
             manifest.dependencies[strings.clone(name, allocator)] = dep
         }
+    }
+
+    // Parse [build] section
+    build_table, build_ok := toml.get_table(root, "build")
+    if build_ok {
+        pre_build_str, pre_ok := toml.get_string(build_table, "pre_build")
+        if pre_ok {
+            manifest.build.pre_build = strings.clone(pre_build_str, allocator)
+        }
+    }
+
+    // Parse [native_libs] section
+    native_table, native_ok := toml.get_table(root, "native_libs")
+    if native_ok {
+        native: NativeLibs
+        path_str, path_ok := toml.get_string(native_table, "path")
+        if path_ok {
+            native.path = strings.clone(path_str, allocator)
+        }
+        libs_list, libs_ok := toml.get_list(native_table, "libs")
+        if libs_ok && libs_list != nil {
+            native.libs = make([dynamic]string, allocator = allocator)
+            for item in libs_list {
+                #partial switch v in item {
+                case string:
+                    append(&native.libs, strings.clone(v, allocator))
+                }
+            }
+        }
+        manifest.native_libs = native
     }
 
     return manifest, true
