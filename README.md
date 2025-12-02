@@ -1,4 +1,4 @@
-# ENDR
+# Endr
 
 A lightweight package manager for the [Odin programming language](https://odin-lang.org/).
 
