@@ -27,6 +27,8 @@ main :: proc() {
         cmd_remove(rest)
     case "install", "i":
         cmd_install(rest)
+    case "update", "u":
+        cmd_update(rest)
     case "build", "b":
         cmd_build(rest)
     case "run", "r":
@@ -56,6 +58,7 @@ Commands:
     add <url> [options]  Add a dependency
     remove <name>        Remove a dependency
     install              Install all dependencies
+    update [name]        Update all packages or a specific package
     build [args...]      Build with odin, injecting collection flags
     run [args...]        Run with odin, injecting collection flags
     flags                Print the collection flags for manual use
@@ -196,6 +199,23 @@ cmd_install :: proc(args: []string) {
     }
 
     fmt.println("All dependencies installed")
+}
+
+cmd_update :: proc(args: []string) {
+    if !os.exists(MANIFEST_FILE) {
+        fmt.eprintln("Error:", MANIFEST_FILE, "not found. Run 'endr init' first")
+        os.exit(1)
+    }
+
+    name: Maybe(string)
+    if len(args) > 0 {
+        name = args[0]
+    }
+
+    if !update_packages(name) {
+        fmt.eprintln("Some packages failed to update")
+        os.exit(1)
+    }
 }
 
 cmd_build :: proc(args: []string) {

@@ -156,6 +156,104 @@ update_dependency :: proc(dest: string, dep: Dependency) -> bool {
     return true
 }
 
+// Update packages to latest version
+update_packages :: proc(name: Maybe(string)) -> bool {
+    manifest, manifest_ok := load_manifest()
+    if !manifest_ok {
+        fmt.eprintln("Error: Could not load", MANIFEST_FILE)
+        return false
+    }
+
+    lock, lock_ok := load_lock_file()
+    if !lock_ok {
+        fmt.eprintln("Error: Could not load lock file")
+        return false
+    }
+
+    all_success := true
+    updated_count := 0
+
+    name_val, has_name := name.?
+
+    for pkg_name, dep in manifest.dependencies {
+        if has_name && pkg_name != name_val {
+            continue
+        }
+
+        dest := filepath.join({PACKAGES_DIR, pkg_name}, context.temp_allocator)
+
+        if !os.exists(dest) {
+            fmt.eprintf("Package %s is not installed. Run 'endr install' first.\n", pkg_name)
+            all_success = false
+            continue
+        }
+
+        if !is_git_repo(dest) {
+            fmt.eprintf("Package %s is not a git repository\n", pkg_name)
+            all_success = false
+            continue
+        }
+
+        // Skip packages pinned to a specific commit
+        _, has_commit := dep.commit.?
+        if has_commit {
+            fmt.printf("Skipping %s (pinned to specific commit)\n", pkg_name)
+            continue
+        }
+
+        fmt.printf("Updating %s...\n", pkg_name)
+
+        old_commit, _ := git_get_head_commit(dest)
+
+        if !git_fetch(dest) {
+            fmt.eprintf("  Failed to fetch %s\n", pkg_name)
+            all_success = false
+            continue
+        }
+
+        if !git_pull(dest) {
+            fmt.eprintf("  Failed to pull %s\n", pkg_name)
+            all_success = false
+            continue
+        }
+
+        new_commit, commit_ok := git_get_head_commit(dest)
+        if commit_ok {
+            if old_commit != new_commit {
+                fmt.printf("  Updated %s: %s -> %s\n", pkg_name, old_commit[:min(len(old_commit), 8)], new_commit[:min(len(new_commit), 8)])
+                updated_count += 1
+            } else {
+                fmt.printf("  %s is already up to date\n", pkg_name)
+            }
+
+            lock.packages[strings.clone(pkg_name)] = LockEntry{
+                url    = strings.clone(dep.url),
+                commit = new_commit,
+            }
+        }
+    }
+
+    if has_name {
+        _, found := manifest.dependencies[name_val]
+        if !found {
+            fmt.eprintf("Package %s not found in %s\n", name_val, MANIFEST_FILE)
+            return false
+        }
+    }
+
+    if !save_lock_file(lock) {
+        fmt.eprintln("Warning: Could not save lock file")
+    }
+
+    if updated_count > 0 {
+        fmt.printf("Updated %d package(s)\n", updated_count)
+    } else if all_success {
+        fmt.println("All packages are up to date")
+    }
+
+    return all_success
+}
+
 // Remove a directory recursively
 remove_directory :: proc(path: string) -> bool {
     // Use os to remove directory

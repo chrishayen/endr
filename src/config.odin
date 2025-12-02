@@ -143,7 +143,10 @@ create_default_manifest :: proc(name: string) -> bool {
     builder := strings.builder_make()
     defer strings.builder_destroy(&builder)
 
-    fmt.sbprintf(&builder, `[package]
+    fmt.sbprintf(&builder, `# endr package manager
+# https://github.com/chrishayen/endr
+
+[package]
 name = %q
 version = "0.1.0"
 
