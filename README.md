@@ -73,6 +73,18 @@ endr remove mylib
 
 Install all dependencies listed in `endr.toml`. Packages are cloned to `.endr/packages/`.
 
+### `endr update [name]`
+
+Update packages to their latest versions. Without arguments, updates all packages. Specify a package name to update only that package.
+
+```bash
+# Update all packages
+endr update
+
+# Update a specific package
+endr update toml_parser
+```
+
 ### `endr build [args...]`
 
 Build the project with Odin, automatically injecting collection flags for dependencies.
