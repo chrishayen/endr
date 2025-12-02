@@ -7,6 +7,7 @@ A lightweight package manager for the [Odin programming language](https://odin-l
 - Add packages from Git repositories with support for branches, tags, and commits
 - Lock file tracking for reproducible builds
 - Seamless integration with `odin build` and `odin run`
+- Editor/LSP support via automatic `ols.json` generation
 - Simple TOML-based configuration
 
 ## Installation
@@ -99,6 +100,18 @@ Display the collection flags for manual use with the Odin compiler.
 odin build . $(endr flags)
 ```
 
+### `endr ols`
+
+Generate an `ols.json` configuration file for editor/LSP support. This enables editors like Helix, VS Code, and others using [OLS (Odin Language Server)](https://github.com/DanielGavin/ols) to provide symbol information, hover docs, and completions for installed packages.
+
+```bash
+endr ols
+```
+
+The generated config includes the `deps` collection pointing to `.endr/packages/`. If `ODIN_ROOT` is set, it also includes the `core` and `vendor` collections.
+
+Note: `ols.json` is automatically regenerated when running `endr install`.
+
 ### `endr version`
 
 Display version information.
@@ -154,6 +167,7 @@ main :: proc() {
 your-project/
   endr.toml        # Project manifest
   endr.lock        # Lock file (auto-generated)
+  ols.json         # Editor/LSP config (auto-generated)
   .endr/
     packages/      # Installed dependencies
   src/

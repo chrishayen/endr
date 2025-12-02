@@ -33,6 +33,8 @@ main :: proc() {
         cmd_run(rest)
     case "flags":
         cmd_flags(rest)
+    case "ols":
+        cmd_ols(rest)
     case "help", "-h", "--help":
         print_usage()
     case "version", "-v", "--version":
@@ -57,6 +59,7 @@ Commands:
     build [args...]      Build with odin, injecting collection flags
     run [args...]        Run with odin, injecting collection flags
     flags                Print the collection flags for manual use
+    ols                  Generate ols.json for editor/LSP support
     help                 Show this help message
     version              Show version
 
@@ -212,6 +215,14 @@ cmd_flags :: proc(args: []string) {
     if flags != "" {
         fmt.println(flags)
     }
+}
+
+cmd_ols :: proc(args: []string) {
+    if !generate_ols_config() {
+        fmt.eprintln("Error: Could not generate", OLS_FILE)
+        os.exit(1)
+    }
+    fmt.println("Generated", OLS_FILE)
 }
 
 // Extract repository name from URL

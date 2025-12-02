@@ -92,6 +92,11 @@ install_dependencies :: proc() -> bool {
         fmt.eprintln("Warning: Could not save lock file")
     }
 
+    // Generate OLS config for editor support
+    if !generate_ols_config() {
+        fmt.eprintln("Warning: Could not generate", OLS_FILE)
+    }
+
     return all_success
 }
 
