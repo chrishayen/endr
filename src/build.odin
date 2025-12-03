@@ -43,9 +43,23 @@ run_odin :: proc(cmd: string, args: []string, use_temp_out: bool) -> bool {
         append(&command, arg)
     }
 
+    // Check if user specified -out flag
+    has_out_flag := false
+    for arg in args {
+        if strings.has_prefix(arg, "-out:") {
+            has_out_flag = true
+            break
+        }
+    }
+
     // For 'run', use a temp output name to avoid clobbering build artifacts
     if use_temp_out {
         append(&command, "-out:.endr/temp_run")
+    } else if !has_out_flag && len(manifest.name) > 0 {
+        // For 'build', output to bin/ directory by default
+        os.make_directory("bin")
+        out_flag := fmt.tprintf("-out:bin/%s", manifest.name)
+        append(&command, out_flag)
     }
 
     // Add deps collection pointing to packages directory
@@ -142,10 +156,11 @@ build_linker_flags :: proc(native: NativeLibs) -> string {
     if len(native.path) > 0 {
         fmt.sbprintf(&builder, "-L%s ", native.path)
         // Add rpath for runtime library loading
+        // Binary goes to bin/ or .endr/, both need ../ to reach lib/ at project root
         when ODIN_OS == .Linux {
-            fmt.sbprintf(&builder, `-Wl,-rpath,'$ORIGIN/%s' `, native.path)
+            fmt.sbprintf(&builder, `-Wl,-rpath,'$ORIGIN/../%s' `, native.path)
         } else when ODIN_OS == .Darwin {
-            fmt.sbprintf(&builder, `-Wl,-rpath,@executable_path/%s `, native.path)
+            fmt.sbprintf(&builder, `-Wl,-rpath,@executable_path/../%s `, native.path)
         }
     }
 
